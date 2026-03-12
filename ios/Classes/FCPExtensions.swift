@@ -94,6 +94,13 @@ func loadUIImageAsync(from source: ImageSource, completion: @escaping (UIImage?)
     }
 }
 
+// Pre-warm image cache. Populated via the 'preloadImage' channel method before
+// a template is pushed. FCPListItem.get checks this cache synchronously so
+// CarPlay renders the list with images already embedded — avoiding N incremental
+// setImage round-trips to the head unit for templates where many items share
+// the same image (e.g. podcast episode lists sharing the show artwork).
+let imagePrewarmCache = NSCache<NSString, UIImage>()
+
 //  UIImage utilities (safe, UI only)
 extension UIImage {
     func resizeImageTo(size: CGSize) -> UIImage {

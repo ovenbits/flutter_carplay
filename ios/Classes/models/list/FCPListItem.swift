@@ -51,12 +51,19 @@ class FCPListItem {
   var get: CPListItem {
     let listItem = CPListItem.init(text: text, detailText: detailText)
     listItem.handler = self.handler
-    if image != nil {
-      listItem.setImage(makeSafeUIPlaceholder())
-      let imageSource = self.image!.toImageSource()
-      loadUIImageAsync(from: imageSource) { uiImage in
-        if let uiImage = uiImage {
-          listItem.setImage(uiImage)
+    if let imageKey = image {
+      if let cachedImage = imagePrewarmCache.object(forKey: imageKey as NSString) {
+        // Image was pre-warmed before this template was pushed — set synchronously
+        // so CarPlay renders the list with images already present, avoiding
+        // per-item setImage round-trips to the head unit.
+        listItem.setImage(cachedImage)
+      } else {
+        listItem.setImage(makeSafeUIPlaceholder())
+        let imageSource = imageKey.toImageSource()
+        loadUIImageAsync(from: imageSource) { uiImage in
+          if let uiImage = uiImage {
+            listItem.setImage(uiImage)
+          }
         }
       }
     }
