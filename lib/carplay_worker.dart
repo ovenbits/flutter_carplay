@@ -233,8 +233,8 @@ class FlutterCarplay {
     );
 
     if (isCompleted == true) {
-      final template = FlutterCarPlayController
-          .getTemplateFromHistory<CPInformationTemplate>(elementId);
+      final template = FlutterCarPlayController.getTemplateFromHistory<
+          CPInformationTemplate>(elementId);
       template?.updateInformationItems(items);
     }
     return;
@@ -256,8 +256,8 @@ class FlutterCarplay {
     );
 
     if (isCompleted == true) {
-      final template = FlutterCarPlayController
-          .getTemplateFromHistory<CPInformationTemplate>(elementId);
+      final template = FlutterCarPlayController.getTemplateFromHistory<
+          CPInformationTemplate>(elementId);
       template?.updateActions(actions);
     }
     return;
@@ -421,6 +421,25 @@ class FlutterCarplay {
       FCPChannelTypes.showNowPlaying,
       animated,
     );
+    return isCompleted ?? false;
+  }
+
+  /// Pre-loads an image from [imageUrl] into the native image cache before a
+  /// template is pushed to CarPlay.
+  ///
+  /// When multiple list items in a template share the same [imageUrl] (e.g. all
+  /// episodes in a podcast show use the same show artwork), calling this once
+  /// before [push] ensures the image is set synchronously during initial
+  /// rendering — avoiding one `setImage` round-trip per item on the live
+  /// CarPlay list, which would otherwise cause a slow trickle-in effect.
+  ///
+  /// Best used with local `file://` paths resolved via a cache manager.
+  /// Returns `true` if the image was successfully loaded and cached.
+  /// On non-iOS platforms this is a no-op that returns `false`.
+  static Future<bool> preloadImage(String imageUrl) async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return false;
+    final bool? isCompleted = await _carPlayController.methodChannel
+        .invokeMethod<bool>('preloadImage', imageUrl);
     return isCompleted ?? false;
   }
 }

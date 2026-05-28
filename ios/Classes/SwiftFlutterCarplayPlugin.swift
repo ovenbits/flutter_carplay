@@ -403,6 +403,19 @@ public class SwiftFlutterCarplayPlugin: NSObject, FlutterPlugin {
     case FCPChannelTypes.getMaximumItemCount:
       result(CPListTemplate.maximumItemCount)
       break
+    case "preloadImage":
+      guard let imageUrl = call.arguments as? String else {
+        result(false)
+        return
+      }
+      let source = imageUrl.toImageSource()
+      loadUIImageAsync(from: source) { image in
+        if let image = image {
+          imagePrewarmCache.setObject(image, forKey: imageUrl as NSString)
+        }
+        result(image != nil)
+      }
+      break
     default:
       result(false)
       break
