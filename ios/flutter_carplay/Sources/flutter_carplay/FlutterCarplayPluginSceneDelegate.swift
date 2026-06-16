@@ -111,18 +111,31 @@ class FlutterCarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelega
   }
 
   static public func pop(animated: Bool) {
-    self.interfaceController?.popTemplate(animated: animated)
+    self.interfaceController?.popTemplate(animated: animated) { _, error in
+      if let error = error {
+        NSLog("FlutterCarPlaySceneDelegate - popTemplate error: \(error.localizedDescription)")
+      }
+    }
   }
 
   static public func popToRootTemplate(animated: Bool) {
-    self.interfaceController?.popToRootTemplate(animated: animated)
+    self.interfaceController?.popToRootTemplate(animated: animated) { _, error in
+      if let error = error {
+        NSLog(
+          "FlutterCarPlaySceneDelegate - popToRootTemplate error: \(error.localizedDescription)")
+      }
+    }
   }
 
   static public func push(template: CPTemplate, animated: Bool) -> Bool {
     guard let interfaceController = self.interfaceController else { return false }
     guard interfaceController.rootTemplate != nil else { return false }
 
-    interfaceController.pushTemplate(template, animated: animated)
+    interfaceController.pushTemplate(template, animated: animated) { _, error in
+      if let error = error {
+        NSLog("FlutterCarPlaySceneDelegate - pushTemplate error: \(error.localizedDescription)")
+      }
+    }
     return true
   }
 
@@ -134,7 +147,13 @@ class FlutterCarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelega
     let isTopSameInstance = interfaceController.topTemplate === template
 
     if !isAlreadyPushed && !isTopSameInstance {
-      interfaceController.pushTemplate(template, animated: animated)
+      interfaceController.pushTemplate(template, animated: animated) { _, error in
+        if let error = error {
+          NSLog(
+            "FlutterCarPlaySceneDelegate - pushTemplate (pushIfNotExist) error: \(error.localizedDescription)"
+          )
+        }
+      }
       return true
     }
     return false

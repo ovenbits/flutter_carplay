@@ -1,5 +1,12 @@
 ## Next
 
+## 1.6.1+fork - 2026-06-16
+
+Fork additions on top of upstream 1.6.1:
+
+- Add image pre-warm cache and `FlutterCarplay.preloadImage()` to eliminate per-item `setImage` round-trips when many list rows share the same artwork
+- Add completion handlers to `pop`, `popToRootTemplate`, `push`, and `pushIfNotExist` so CarPlay template errors are logged instead of crashing the app
+
 ## 1.6.1 - 2026-06-15
 
 - Fix Swift Package Manager builds by keeping `FCPSearchTemplate.swift` inside the SwiftPM source path (#123, #124) (ty @Gabriellsp)
@@ -114,11 +121,12 @@ This enhances the tab bar template by enabling support for multiple template typ
 ## 1.2.2
 
 **Issues:**
-Calling `updateTemplates` or `updateSections` updates the layout correctly when the CarPlay is already active, but fail to do when CarPlay not yet started. Using `updateTemplates` or `updateSections` doesn’t refresh ListItem's handler properly, causing missing callbacks. This results in items showing a loading indicator for several seconds because the end event never fires. 
+Calling `updateTemplates` or `updateSections` updates the layout correctly when the CarPlay is already active, but fail to do when CarPlay not yet started. Using `updateTemplates` or `updateSections` doesn’t refresh ListItem's handler properly, causing missing callbacks. This results in items showing a loading indicator for several seconds because the end event never fires.
 
 It's been updated by @EArminjon in https://github.com/oguzhnatly/flutter_carplay/pull/77
 
 **Fixes :**
+
 - Ensure `updateTemplate` and `updateSections` correctly refresh all relevant data and update the `final _super.handler`.
 - Reformatted the code.
 - Reuse existing `CPTemplate` instances instead of recreating them.
@@ -131,6 +139,7 @@ It's been updated by @EArminjon in https://github.com/oguzhnatly/flutter_carplay
 This allow updating a tabBar without removing entire stack. This is useful to add, update or remove tabs.
 
 **Bug fixes :**
+
 - Ensure that updateSections only recreate necessary entries.
 - Ensure that updateSections take and memorise new entries (by using List.from).
 

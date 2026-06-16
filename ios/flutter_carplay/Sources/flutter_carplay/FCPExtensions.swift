@@ -10,6 +10,13 @@ import UIKit
 
 private let fcpTintedImageCache = NSCache<NSString, UIImage>()
 
+// Pre-warm image cache. Populated via the 'preloadImage' channel method before
+// a template is pushed. FCPListItem.get checks this cache synchronously so
+// CarPlay renders the list with images already embedded — avoiding N incremental
+// setImage round-trips to the head unit for templates where many items share
+// the same image (e.g. podcast episode lists sharing the show artwork).
+let imagePrewarmCache = NSCache<NSString, UIImage>()
+
 // Creates a UIImage from raw PNG bytes sent over the MethodChannel.
 // Used for Flutter asset SVGs that are rasterized to PNG on the Dart side,
 // since UIImage cannot decode SVG directly. Returns nil when the data is
