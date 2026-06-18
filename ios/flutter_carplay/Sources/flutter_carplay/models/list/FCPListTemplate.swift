@@ -21,6 +21,11 @@ class FCPListTemplate {
   private var showsTabBadge: Bool = false
   private var objcBackButton: FCPBarButton?
   private var backButton: CPBarButton?
+  private var deferredSharedLeadingImagesWorkItem: DispatchWorkItem?
+
+  /// Wait before hydrating shared row artwork on placeholder rows so an immediate
+  /// back tap is not blocked by hundreds of native setImage calls.
+  private static let deferredSharedLeadingImageDelay: TimeInterval = 1.0
 
   init(obj: [String: Any]) {
     self.elementId = obj["_elementId"] as! String
@@ -63,6 +68,35 @@ class FCPListTemplate {
     return objcSections
   }
 
+  /// Applies section [sharedLeadingImage] values after push without blocking the
+  /// initial template presentation.
+  public func scheduleDeferredSharedLeadingImages() {
+    deferredSharedLeadingImagesWorkItem?.cancel()
+    let work = DispatchWorkItem { [weak self] in
+      guard let self = self else { return }
+      for section in self.objcSections {
+        section.applyDeferredSharedLeadingImage()
+      }
+    }
+    deferredSharedLeadingImagesWorkItem = work
+    let delay =
+      objcSections.contains(where: { $0.hasPreloadedSharedLeadingImage() })
+      ? 0.0
+      : Self.deferredSharedLeadingImageDelay
+    DispatchQueue.main.asyncAfter(
+      deadline: .now() + delay,
+      execute: work
+    )
+  }
+
+  public func cancelDeferredSharedLeadingImages() {
+    deferredSharedLeadingImagesWorkItem?.cancel()
+    deferredSharedLeadingImagesWorkItem = nil
+    for section in objcSections {
+      section.cancelDeferredSharedLeadingImage()
+    }
+  }
+
   // Update templates only if structure has changed.
   public func update(with: any FCPTemplate) {
     guard let with = with as? FCPListTemplate else {
@@ -95,11 +129,6 @@ class FCPListTemplate {
   }
 
   public func updateSections(sections: [FCPListSection]) {
-    let fcpSectionsMap: [String: FCPListSection] = Dictionary(
-      uniqueKeysWithValues: self.objcSections.map { ($0.elementId, $0) })
-    let cpSectionsMap = Dictionary(
-      uniqueKeysWithValues: zip(self.objcSections.map { $0.elementId }, self.sections))
-
     /// CPListSection didn't provide any way to update items
     self.objcSections = sections
     self.sections = sections.map { section in

@@ -86,7 +86,7 @@ public class SwiftFlutterCarplayPlugin: NSObject, FlutterPlugin {
       }
 
       SwiftFlutterCarplayPlugin.rootTemplate = rootTemplate!.get
-      if !(SwiftFlutterCarplayPlugin.templateStack.isEmpty ?? true) {
+      if !SwiftFlutterCarplayPlugin.templateStack.isEmpty {
         SwiftFlutterCarplayPlugin.templateStack[0] = rootTemplate!
       } else {
         SwiftFlutterCarplayPlugin.templateStack = [rootTemplate!]
@@ -383,6 +383,9 @@ public class SwiftFlutterCarplayPlugin: NSObject, FlutterPlugin {
         template: template!.get, animated: animated)
       if isCompleted {
         SwiftFlutterCarplayPlugin.templateStack.append(template!)
+        if let listTemplate = template as? FCPListTemplate {
+          listTemplate.scheduleDeferredSharedLeadingImages()
+        }
         result(true)
       } else {
         result(false)
@@ -476,7 +479,6 @@ public class SwiftFlutterCarplayPlugin: NSObject, FlutterPlugin {
     elementId: String, actionWhenFound: (_ item: FCPListTemplateItem) -> Void
   ) {
     var collected: [FCPListTemplate] = []
-    var found = false
 
     for template in SwiftFlutterCarplayPlugin.templateStack {
       if let tabBar = template as? FCPTabBarTemplate {
@@ -491,7 +493,7 @@ public class SwiftFlutterCarplayPlugin: NSObject, FlutterPlugin {
         for item in search.getCurrentResultItems() {
           if item.elementId == elementId {
             actionWhenFound(item)
-            found = true
+            return
           }
         }
       }
@@ -502,15 +504,13 @@ public class SwiftFlutterCarplayPlugin: NSObject, FlutterPlugin {
         for i in s.getFCPListTemplateItems() {
           if i.elementId == elementId {
             actionWhenFound(i)
-            found = true
+            return
           }
         }
       }
     }
 
-    if !found {
-      NSLog("FCP: FCPListTemplateItem not found with elementId: \(elementId)")
-    }
+    NSLog("FCP: FCPListTemplateItem not found with elementId: \(elementId)")
   }
 
   @available(iOS 26.0, *)
@@ -570,5 +570,17 @@ public class SwiftFlutterCarplayPlugin: NSObject, FlutterPlugin {
       }
     }
     return nil
+  }
+
+  /// Stops in-flight deferred section artwork hydration for a list template.
+  /// Call before popping so back navigation is not blocked by batched setImage work.
+  static public func cancelDeferredListTemplateWork(elementId: String? = nil) {
+    let template: FCPListTemplate?
+    if let elementId = elementId {
+      template = getTemplateFromHistory(elementId: elementId) as? FCPListTemplate
+    } else {
+      template = templateStack.last as? FCPListTemplate
+    }
+    template?.cancelDeferredSharedLeadingImages()
   }
 }

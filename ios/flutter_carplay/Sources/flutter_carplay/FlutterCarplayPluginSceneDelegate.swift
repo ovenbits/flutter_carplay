@@ -111,6 +111,7 @@ class FlutterCarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelega
   }
 
   static public func pop(animated: Bool) {
+    SwiftFlutterCarplayPlugin.cancelDeferredListTemplateWork()
     self.interfaceController?.popTemplate(animated: animated) { _, error in
       if let error = error {
         NSLog("FlutterCarPlaySceneDelegate - popTemplate error: \(error.localizedDescription)")
@@ -119,6 +120,7 @@ class FlutterCarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelega
   }
 
   static public func popToRootTemplate(animated: Bool) {
+    SwiftFlutterCarplayPlugin.cancelDeferredListTemplateWork()
     self.interfaceController?.popToRootTemplate(animated: animated) { _, error in
       if let error = error {
         NSLog(
@@ -157,6 +159,11 @@ class FlutterCarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelega
       return true
     }
     return false
+  }
+
+  func templateWillDisappear(_ template: CPTemplate, animated: Bool) {
+    guard let elementId = template.elementId else { return }
+    SwiftFlutterCarplayPlugin.cancelDeferredListTemplateWork(elementId: elementId)
   }
 
   func templateDidDisappear(_ template: CPTemplate, animated: Bool) {

@@ -64,6 +64,11 @@ class CPListItem extends CPListTemplateItem {
   /// iOS 14.0+ | iPadOS 14.0+ | Mac Catalyst 14.0+
   CPListItemAccessoryType? accessoryType;
 
+  /// When true, the row uses [CPListSection.sharedLeadingImage] instead of [image].
+  ///
+  /// The image URL is omitted from the push payload; native applies it once per section.
+  final bool inheritsSectionLeadingImage;
+
   /// An optional closure that CarPlay invokes when the user selects the list item.
   /// iOS 14.0+ | iPadOS 14.0+ | Mac Catalyst 14.0+
   final FutureOr<void> Function(Function() complete, CPListItem self)? onPress;
@@ -86,6 +91,7 @@ class CPListItem extends CPListTemplateItem {
     this.isPlaying,
     this.playingIndicatorLocation,
     this.accessoryType,
+    this.inheritsSectionLeadingImage = false,
     String? id,
   }) : _elementId = id ?? const Uuid().v4();
 
@@ -95,7 +101,8 @@ class CPListItem extends CPListTemplateItem {
         'text': text,
         'detailText': detailText,
         'onPress': onPress != null ? true : false,
-        'image': image,
+        if (!inheritsSectionLeadingImage) 'image': image,
+        if (inheritsSectionLeadingImage) 'inheritsSectionLeadingImage': true,
         'imageTint': imageTint?.toJson(),
         'accessoryImage': accessoryImage,
         'trailingImage': trailingImage,

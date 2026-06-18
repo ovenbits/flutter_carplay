@@ -10,6 +10,16 @@ import Flutter
 
 @available(iOS 14.0, *)
 final class FCPListItem {
+  /// Shared neutral tile shown while section [sharedLeadingImage] is applied after push.
+  private static let deferredLeadingPlaceholder: UIImage = {
+    let size = CGSize(width: 100, height: 100)
+    let renderer = UIGraphicsImageRenderer(size: size)
+    return renderer.image { context in
+      UIColor.tertiarySystemFill.setFill()
+      context.fill(CGRect(origin: .zero, size: size))
+    }
+  }()
+
   private(set) var _super: CPListItem?
   private(set) var elementId: String
   private(set) var text: String?
@@ -27,8 +37,20 @@ final class FCPListItem {
   private var isPlaying: Bool?
   private var playingIndicatorLocation: CPListItemPlayingIndicatorLocation?
   private var accessoryType: CPListItemAccessoryType?
+  private(set) var inheritsSectionLeadingImage: Bool = false
+  private var sectionSharedLeadingImage: String?
+  private var sectionDeferSharedLeadingImage: Bool = false
 
-  init(obj: [String: Any]) {
+  /// Key used while the shared grey placeholder tile is shown.
+  static let deferredLeadingPlaceholderImageKey = "#deferredLeadingPlaceholder"
+
+  private(set) var currentLeadingImageKey: String?
+
+  init(
+    obj: [String: Any],
+    sectionSharedLeadingImage: String? = nil,
+    sectionDeferSharedLeadingImage: Bool = false
+  ) {
     self.elementId = obj["_elementId"] as! String
     self.text = obj["text"] as? String
     self.detailText = obj["detailText"] as? String
@@ -44,6 +66,10 @@ final class FCPListItem {
     self.isPlaying = obj["isPlaying"] as? Bool
     self.setPlayingIndicatorLocation(fromString: obj["playingIndicatorLocation"] as? String)
     self.setAccessoryType(fromString: obj["accessoryType"] as? String)
+    self.inheritsSectionLeadingImage = obj["inheritsSectionLeadingImage"] as? Bool ?? false
+    self.sectionSharedLeadingImage = sectionSharedLeadingImage
+    self.sectionDeferSharedLeadingImage =
+      sectionDeferSharedLeadingImage && self.inheritsSectionLeadingImage
   }
 
   private func handler(selectedItem: CPSelectableListItem, complete: @escaping () -> Void) {
@@ -61,23 +87,33 @@ final class FCPListItem {
     }
   }
 
+  private func applyLeadingImageFromKey(_ imageKey: String, to listItem: CPListItem) {
+    if imageData == nil,
+      let cachedImage = imagePrewarmCache.object(forKey: imageKey as NSString)
+    {
+      listItem.setImage(cachedImage)
+      return
+    }
+
+    listItem.setImage(makeSafeUIPlaceholder())
+    loadUIImage(from: imageKey, bytes: imageData, tint: imageTint) { uiImage in
+      listItem.setImage(uiImage)
+    }
+  }
+
   var get: CPListTemplateItem {
     let listItem = CPListItem.init(text: text, detailText: detailText)
     listItem.handler = self.handler
-    if let imageKey = image {
-      if imageData == nil,
-        let cachedImage = imagePrewarmCache.object(forKey: imageKey as NSString)
-      {
-        // Image was pre-warmed before this template was pushed — set synchronously
-        // so CarPlay renders the list with images already present, avoiding
-        // per-item setImage round-trips to the head unit.
-        listItem.setImage(cachedImage)
-      } else {
-        listItem.setImage(makeSafeUIPlaceholder())
-        loadUIImage(from: imageKey, bytes: imageData, tint: imageTint) { uiImage in
-          listItem.setImage(uiImage)
-        }
+
+    if inheritsSectionLeadingImage {
+      if sectionDeferSharedLeadingImage {
+        listItem.setImage(Self.deferredLeadingPlaceholder)
+        currentLeadingImageKey = Self.deferredLeadingPlaceholderImageKey
+      } else if let imageKey = sectionSharedLeadingImage ?? image {
+        applyLeadingImageFromKey(imageKey, to: listItem)
       }
+    } else if let imageKey = image {
+      applyLeadingImageFromKey(imageKey, to: listItem)
     }
 
     let accessorySource = trailingImage ?? accessoryImage
@@ -103,6 +139,12 @@ final class FCPListItem {
     }
     self._super = listItem
     return listItem
+  }
+
+  func applyLeadingImage(_ uiImage: UIImage, imageKey: String) {
+    self.image = imageKey
+    currentLeadingImageKey = imageKey
+    _super?.setImage(uiImage)
   }
 
   public func stopHandler() {
